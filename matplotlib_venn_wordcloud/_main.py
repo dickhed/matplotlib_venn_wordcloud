@@ -72,7 +72,7 @@ venn2_wordcloud(sets)
 import numpy as np
 import matplotlib.pyplot as plt
 from wordcloud import WordCloud
-from matplotlib_venn import venn2, venn3, venn2_circles, venn3_circles
+from matplotlib_venn import venn2, venn3, venn2_circles, venn3_unweighted, venn3_circles
 
 def _default_color_func(*args, **kwargs):
     return '#00000f'
@@ -260,7 +260,7 @@ def venn3_wordcloud(sets,
     if not ax:
         fig, ax = plt.subplots(1,1)
 
-    venn = venn3(sets,
+    venn = venn3_unweighted(sets,
                  set_labels=set_labels,
                  set_colors=set_colors,
                  alpha=alpha,
@@ -270,11 +270,11 @@ def venn3_wordcloud(sets,
     # cannot use edgecolor attribute of patches returned by venn2
     # venn2 patches correspond to subsets and edges of patches are composed of several circles
     if set_edgecolors:
-        venn_circles = venn3_circles(sets, ax=ax)
+        venn_circles = venn3_circles(subsets=(1, 1, 1, 1, 1, 1, 1), ax=ax)
         for ii, patch in enumerate(venn_circles):
             patch.set_edgecolor(set_edgecolors[ii])
-            patch.set_linewidth(3)
-
+            patch.set_linewidth(1)
+        
         # add circle handles to venn
         def _func(idx):
             return venn_circles[idx]
@@ -295,6 +295,18 @@ def venn3_wordcloud(sets,
     def _func(id):
         return [word for (word, word_id) in zip(words, word_ids) if word_id==id]
     venn.get_words_by_id = _func
+    venn.get_label_by_id('100').set_text('')
+    venn.get_label_by_id('010').set_text('')
+    venn.get_label_by_id('001').set_text('')
+    venn.get_label_by_id('110').set_text('')
+    venn.get_label_by_id('011').set_text('')
+    venn.get_label_by_id('101').set_text('')
+    venn.get_label_by_id('111').set_text('')
+
+
+    venn.get_label_by_id('100').set_text('')
+
+
 
     return _venn_wordcloud(venn, ax, word_to_frequency, **wordcloud_kwargs)
 
@@ -326,9 +338,6 @@ def _venn_wordcloud(ExtendedVennDiagram, ax, word_to_frequency=None, **wordcloud
 
     """
 
-    # remove default subset labels; we will put a word cloud there instead
-    for mpl_text in ExtendedVennDiagram.subset_labels:
-        mpl_text.set_text('')
 
     # initialise an image that spans the axis
     img = _AxisImage(ax)
@@ -357,7 +366,6 @@ def _venn_wordcloud(ExtendedVennDiagram, ax, word_to_frequency=None, **wordcloud
 
     idx = np.argmin(max_font_sizes / frequencies)
     max_font_sizes = frequencies * max_font_sizes[idx] / frequencies[idx]
-
     # create a word cloud for each patch region and combine word clouds into one image
     for ii, uid in enumerate(ExtendedVennDiagram.uids):
         wc = _get_wordcloud(img,
